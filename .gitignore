@@ -1,0 +1,35 @@
+# API Keys & Environment
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual Environment
+venv/
+env/
+.venv/
+
+# Generated Outputs
+outputs/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+
+# Jupyter Notebooks (for later phases)
+.ipynb_checkpoints/
+
+# Logs
+*.log
+
+# Distribution / Packaging (if you ever publish)
+dist/
+build/
+*.egg-info/
