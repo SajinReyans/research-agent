@@ -12,6 +12,7 @@ from agent.searcher import search_papers, display_papers, pick_paper
 from agent.downloader import download_pdf
 from agent.reader import extract_from_chunks, display_extraction
 from agent.comparator import compare_papers, display_comparison
+from agent.writer import generate_literature_review, display_review
 
 console = Console()
 
@@ -98,7 +99,7 @@ def process_single_paper(paper: dict, label: str) -> tuple[str, str, list[str]]:
     # Parse
     console.print(f"\n[bold]→ Extracting text...[/bold]")
     text = extract_text_from_pdf(pdf_path)
-    chunks = chunk_text(text, max_chars=12000)
+    chunks = chunk_text(text, max_chars=4000)
 
     # Summarize
     console.print(f"\n[bold]→ Summarizing...[/bold]")
@@ -163,6 +164,95 @@ def run_compare_mode(query: str):
     output_path = save_comparison_report(comparison, paper1["title"], paper2["title"])
     console.print(f"\n[bold green]💾 Comparison report saved to:[/bold green] {output_path}")
 
+
+
+def save_literature_review(review: str, topic: str) -> str:
+    """
+    Saves the literature review to the outputs folder as a markdown file.
+
+    Args:
+        review: Full literature review string.
+        topic: Research topic used as filename base.
+
+    Returns:
+        Path to saved literature review file.
+    """
+    os.makedirs("outputs", exist_ok=True)
+
+    clean_topic = "".join(c if c.isalnum() or c in " _-" else "" for c in topic)
+    clean_topic = clean_topic.strip().replace(" ", "_")[:40]
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_path = f"outputs/literature_review_{clean_topic}_{timestamp}.md"
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(review)
+
+    return output_path
+
+
+def run_review_mode(query: str):
+    """
+    Phase 5 mode: Search, pick 2 papers, process both, compare, then write literature review.
+
+    Args:
+        query: Research topic or keyword.
+    """
+    console.print("\n[bold cyan]✍️  Review Mode: Generating a full literature review from 2 papers.[/bold cyan]")
+
+    # Step 1: Search
+    console.print("\n[bold]Step 1/7 → Searching ArXiv...[/bold]")
+    papers = search_papers(query, max_results=5)
+    if not papers:
+        sys.exit(1)
+
+    # Step 2: Pick Paper 1
+    console.print("\n[bold]Step 2/7 → Pick Paper 1...[/bold]")
+    display_papers(papers)
+    paper1 = pick_paper(papers)
+
+    # Step 3: Pick Paper 2
+    console.print("\n[bold]Step 3/7 → Pick Paper 2 (choose a different one)...[/bold]")
+    remaining = [p for p in papers if p["index"] != paper1["index"]]
+    for i, p in enumerate(remaining, start=1):
+        p["index"] = i
+    display_papers(remaining)
+    paper2 = pick_paper(remaining)
+
+    # Step 4: Process Paper 1
+    console.print("\n[bold]Step 4/7 → Processing Paper 1...[/bold]")
+    summary1, extraction1, _ = process_single_paper(paper1, "Paper 1")
+
+    # Step 5: Process Paper 2
+    console.print("\n[bold]Step 5/7 → Processing Paper 2...[/bold]")
+    summary2, extraction2, _ = process_single_paper(paper2, "Paper 2")
+
+    # Step 6: Compare
+    console.print("\n[bold]Step 6/7 → Running Comparison Agent...[/bold]")
+    comparison = compare_papers(
+        title1=paper1["title"],
+        extraction1=extraction1,
+        title2=paper2["title"],
+        extraction2=extraction2
+    )
+    display_comparison(comparison)
+
+    # Step 7: Generate literature review
+    console.print("\n[bold]Step 7/7 → Writer Agent generating literature review...[/bold]")
+    review = generate_literature_review(
+        topic=query,
+        title1=paper1["title"],
+        summary1=summary1,
+        extraction1=extraction1,
+        title2=paper2["title"],
+        summary2=summary2,
+        extraction2=extraction2,
+        comparison=comparison
+    )
+    display_review(review)
+
+    # Save
+    output_path = save_literature_review(review, query)
+    console.print(f"\n[bold green]💾 Literature review saved to:[/bold green] {output_path}")
 
 
 def run_pdf_mode(pdf_path: str):
@@ -265,6 +355,12 @@ def main():
         metavar="QUERY",
         help="Search ArXiv and compare 2 papers side by side"
     )
+    group.add_argument(
+        "--review",
+        type=str,
+        metavar="QUERY",
+        help="Search ArXiv and generate a full literature review from 2 papers"
+    )
 
     args = parser.parse_args()
 
@@ -278,6 +374,8 @@ def main():
         run_search_mode(args.search)
     elif args.compare:
         run_compare_mode(args.compare)
+    elif args.review:
+        run_review_mode(args.review)
     elif args.pdf:
         run_pdf_mode(args.pdf)
     else:

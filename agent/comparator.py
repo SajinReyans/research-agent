@@ -9,7 +9,7 @@ from agent.prompts import COMPARISON_PROMPT
 load_dotenv()
 console = Console()
 
-GROQ_MODEL = "llama-3.3-70b-versatile"
+GROQ_MODEL = "llama-3.1-8b-instant"
 
 
 def get_groq_client() -> Groq:

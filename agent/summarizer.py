@@ -8,7 +8,7 @@ load_dotenv()
 console = Console()
 
 # Available Groq models (fast & free)
-GROQ_MODEL = "llama-3.3-70b-versatile"  # Can switch to "llama3-70b-8192" for better quality
+GROQ_MODEL = "llama-3.1-8b-instant"  # Can switch to "llama-3.3-70b-versatile" for better quality
 
 
 def get_groq_client() -> Groq:
@@ -33,7 +33,9 @@ def summarize_text(text: str) -> str:
     """
     client = get_groq_client()
 
-    prompt = SUMMARY_PROMPT.format(paper_text=text)
+    # Truncate to ~3000 chars to stay within free tier TPM limits
+    truncated_text = text[:3000]
+    prompt = SUMMARY_PROMPT.format(paper_text=truncated_text)
 
     console.print(f"[bold cyan]🤖 Sending to Groq ({GROQ_MODEL})...[/bold cyan]")
 
@@ -51,7 +53,7 @@ def summarize_text(text: str) -> str:
                 }
             ],
             temperature=0.3,       # Lower = more factual, less creative
-            max_tokens=1500,
+            max_tokens=800,
         )
 
         summary = response.choices[0].message.content

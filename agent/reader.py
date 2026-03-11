@@ -9,7 +9,7 @@ from agent.prompts import EXTRACTION_PROMPT
 load_dotenv()
 console = Console()
 
-GROQ_MODEL = "llama-3.3-70b-versatile"
+GROQ_MODEL = "llama-3.1-8b-instant"
 
 
 def get_groq_client() -> Groq:
@@ -33,7 +33,10 @@ def extract_methodology(text: str) -> str:
         Structured extraction report as a string.
     """
     client = get_groq_client()
-    prompt = EXTRACTION_PROMPT.format(paper_text=text)
+
+    # Truncate text to ~3000 chars to stay within 6000 TPM limit
+    truncated_text = text[:3000]
+    prompt = EXTRACTION_PROMPT.format(paper_text=truncated_text)
 
     console.print(f"[bold cyan]🔍 Reader Agent extracting methodology ({GROQ_MODEL})...[/bold cyan]")
 
@@ -51,7 +54,7 @@ def extract_methodology(text: str) -> str:
                 }
             ],
             temperature=0.1,    # Very low — we want factual extraction only
-            max_tokens=2000,
+            max_tokens=1000,
         )
 
         extraction = response.choices[0].message.content
@@ -77,11 +80,10 @@ def extract_from_chunks(chunks: list[str]) -> str:
     if len(chunks) == 1:
         return extract_methodology(chunks[0])
 
-    console.print(f"[bold yellow]📚 Long paper: extracting from first 2 chunks for best accuracy...[/bold yellow]")
+    console.print(f"[bold yellow]📚 Long paper: extracting from first chunk only to stay within token limits...[/bold yellow]")
 
-    # Use first 2 chunks — methodology is usually in early sections
-    combined = "\n\n".join(chunks[:2])
-    return extract_methodology(combined)
+    # Use only first chunk to stay within the 6000 TPM limit of free tier
+    return extract_methodology(chunks[0])
 
 
 def display_extraction(extraction: str):

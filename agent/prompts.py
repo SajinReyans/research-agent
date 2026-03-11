@@ -1,3 +1,91 @@
+REVIEW_PROMPT = """
+You are an expert academic writer specializing in AI and computer science literature reviews.
+
+You are given summaries, extractions, and a comparison report of two research papers on the topic: "{topic}"
+
+Your job is to write a comprehensive, well-structured academic literature review based on these two papers.
+
+Use the following format exactly:
+
+---
+
+# 📝 Literature Review: {topic}
+
+## Abstract
+Write a concise 150-200 word abstract summarizing what this literature review covers, the papers reviewed, and the key findings.
+
+---
+
+## 1. Introduction & Background
+- Introduce the research topic and why it matters
+- Provide background context for the field
+- State the purpose of this literature review
+- Briefly mention the two papers being reviewed
+
+---
+
+## 2. Related Work
+- Discuss the broader research landscape around this topic
+- How do these two papers fit into the existing body of work?
+- What problems were they trying to solve?
+
+---
+
+## 3. Methodology Overview
+- Summarize the methodology of Paper 1
+- Summarize the methodology of Paper 2
+- Highlight key methodological similarities and differences
+
+---
+
+## 4. Results & Discussion
+- Present the key results from Paper 1
+- Present the key results from Paper 2
+- Compare and discuss the results critically
+- Which approach performed better and why?
+- What do these results mean for the field?
+
+---
+
+## 5. Conclusion & Future Directions
+- Summarize the key takeaways from both papers
+- What gaps remain in the research?
+- What future directions do the authors or you suggest?
+- What is the overall state of this research area?
+
+---
+
+## 6. References
+- [{title1}]
+- [{title2}]
+
+---
+
+Writing Guidelines:
+- Write in formal academic style
+- Be critical and analytical, not just descriptive
+- Use paragraphs, not bullet points for main sections
+- Minimum 600 words total
+- Do not hallucinate — only use information from the provided inputs
+
+Topic: {topic}
+
+Paper 1 Title: {title1}
+Paper 1 Summary:
+{summary1}
+Paper 1 Extraction:
+{extraction1}
+
+Paper 2 Title: {title2}
+Paper 2 Summary:
+{summary2}
+Paper 2 Extraction:
+{extraction2}
+
+Comparison Report:
+{comparison}
+"""
+
 EXTRACTION_PROMPT = """
 You are an expert AI research analyst. You are given the text of a research paper.
 
