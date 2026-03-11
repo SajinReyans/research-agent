@@ -48,3 +48,4 @@ def download_pdf(paper: dict) -> str:
     except Exception as e:
         console.print(f"[bold red]❌ Download failed:[/bold red] {e}")
         raise
+    

@@ -13,6 +13,14 @@ from agent.downloader import download_pdf
 from agent.reader import extract_from_chunks, display_extraction
 from agent.comparator import compare_papers, display_comparison
 from agent.writer import generate_literature_review, display_review
+from agent.memory import (
+    save_review_to_memory,
+    search_memory,
+    check_existing_review,
+    display_memory_results,
+    clear_memory,
+    get_memory_stats
+)
 
 console = Console()
 
@@ -192,12 +200,27 @@ def save_literature_review(review: str, topic: str) -> str:
 
 def run_review_mode(query: str):
     """
-    Phase 5 mode: Search, pick 2 papers, process both, compare, then write literature review.
+    Phase 5+6 mode: Search, pick 2 papers, process both, compare, write review, save to memory.
 
     Args:
         query: Research topic or keyword.
     """
     console.print("\n[bold cyan]✍️  Review Mode: Generating a full literature review from 2 papers.[/bold cyan]")
+
+    # Phase 6: Check memory first — avoid re-downloading if similar review exists
+    console.print("\n[bold]🧠 Checking memory for existing reviews...[/bold]")
+    existing = check_existing_review(query)
+    if existing:
+        use_existing = input("\n👉 Use existing review from memory? (y/n): ").strip().lower()
+        if use_existing == "y":
+            display_review(existing["review"])
+            output_path = save_literature_review(existing["review"], query)
+            console.print(f"\n[bold green]💾 Review saved to:[/bold green] {output_path}")
+            return
+
+    # Show memory stats
+    stats = get_memory_stats()
+    console.print(f"[dim]  📚 Total reviews in memory: {stats['total_reviews']}[/dim]")
 
     # Step 1: Search
     console.print("\n[bold]Step 1/7 → Searching ArXiv...[/bold]")
@@ -250,9 +273,19 @@ def run_review_mode(query: str):
     )
     display_review(review)
 
-    # Save
+    # Save to file
     output_path = save_literature_review(review, query)
     console.print(f"\n[bold green]💾 Literature review saved to:[/bold green] {output_path}")
+
+    # Phase 6: Save to ChromaDB memory
+    save_review_to_memory(
+        topic=query,
+        review=review,
+        title1=paper1["title"],
+        title2=paper2["title"]
+    )
+    console.print(f"[bold green]🧠 Review saved to memory![/bold green]")
+
 
 
 def run_pdf_mode(pdf_path: str):
@@ -361,12 +394,23 @@ def main():
         metavar="QUERY",
         help="Search ArXiv and generate a full literature review from 2 papers"
     )
+    group.add_argument(
+        "--memory",
+        type=str,
+        metavar="QUERY",
+        help="Search past literature reviews stored in memory"
+    )
+    group.add_argument(
+        "--clear-memory",
+        action="store_true",
+        help="Clear all stored reviews from memory"
+    )
 
     args = parser.parse_args()
 
     console.print(Panel.fit(
         "[bold magenta]🔬 Research Agent[/bold magenta]\n"
-        "[dim]Powered by Groq + LLaMA 3 + ArXiv[/dim]",
+        "[dim]Powered by Groq + LLaMA 3 + ArXiv + ChromaDB[/dim]",
         border_style="magenta"
     ))
 
@@ -376,6 +420,16 @@ def main():
         run_compare_mode(args.compare)
     elif args.review:
         run_review_mode(args.review)
+    elif args.memory:
+        console.print(f"\n[bold cyan]🧠 Searching memory for:[/bold cyan] [yellow]{args.memory}[/yellow]")
+        matches = search_memory(args.memory, n_results=3)
+        display_memory_results(matches)
+    elif args.clear_memory:
+        confirm = input("⚠️  Are you sure you want to clear all memory? (y/n): ").strip().lower()
+        if confirm == "y":
+            clear_memory()
+        else:
+            console.print("[dim]Memory clear cancelled.[/dim]")
     elif args.pdf:
         run_pdf_mode(args.pdf)
     else:
