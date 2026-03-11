@@ -10,41 +10,46 @@ from agent.parser import extract_text_from_pdf, chunk_text
 from agent.summarizer import summarize_long_paper
 from agent.searcher import search_papers, display_papers, pick_paper
 from agent.downloader import download_pdf
+from agent.reader import extract_from_chunks, display_extraction
 
 console = Console()
 
 
-def save_summary(summary: str, title: str) -> str:
+def save_full_report(summary: str, extraction: str, title: str) -> str:
     """
-    Saves the summary to the outputs folder as a markdown file.
+    Saves the combined summary + extraction report to outputs folder.
 
     Args:
-        summary: The generated summary text.
+        summary: Generated summary text.
+        extraction: Extracted methodology details.
         title: Title used to name the output file.
 
     Returns:
-        Path to saved summary file.
+        Path to saved report file.
     """
     os.makedirs("outputs", exist_ok=True)
 
-    # Clean title for use as filename
     clean_title = "".join(c if c.isalnum() or c in " _-" else "" for c in title)
     clean_title = clean_title.strip().replace(" ", "_")[:50]
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_path = f"outputs/{clean_title}_summary_{timestamp}.md"
+    output_path = f"outputs/{clean_title}_full_report_{timestamp}.md"
 
     with open(output_path, "w", encoding="utf-8") as f:
-        f.write(f"# Summary: {title}\n")
+        f.write(f"# Full Report: {title}\n")
         f.write(f"*Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*\n\n")
         f.write("---\n\n")
+        f.write("# 📄 Part 1: Summary\n\n")
         f.write(summary)
+        f.write("\n\n---\n\n")
+        f.write("# 🔬 Part 2: Methodology Extraction\n\n")
+        f.write(extraction)
 
     return output_path
 
 
 def run_pdf_mode(pdf_path: str):
     """
-    Phase 1 mode: Directly summarize a local PDF file.
+    Phase 1+3 mode: Directly summarize and extract from a local PDF file.
 
     Args:
         pdf_path: Path to the PDF file.
@@ -57,57 +62,64 @@ def run_pdf_mode(pdf_path: str):
         console.print("[bold red]❌ Please provide a valid .pdf file.[/bold red]")
         sys.exit(1)
 
-    console.print("\n[bold]Step 1/3 → Extracting text from PDF...[/bold]")
+    console.print("\n[bold]Step 1/4 → Extracting text from PDF...[/bold]")
     text = extract_text_from_pdf(pdf_path)
 
-    console.print("\n[bold]Step 2/3 → Preparing text for LLM...[/bold]")
+    console.print("\n[bold]Step 2/4 → Preparing text for LLM...[/bold]")
     chunks = chunk_text(text, max_chars=12000)
 
-    console.print("\n[bold]Step 3/3 → Generating summary with Groq...[/bold]")
+    console.print("\n[bold]Step 3/4 → Generating summary with Groq...[/bold]")
     summary = summarize_long_paper(chunks)
-
     console.print("\n")
     console.print(Panel(Markdown(summary), title="📄 Paper Summary", border_style="green"))
 
+    console.print("\n[bold]Step 4/4 → Extracting methodology details...[/bold]")
+    extraction = extract_from_chunks(chunks)
+    display_extraction(extraction)
+
     title = os.path.splitext(os.path.basename(pdf_path))[0]
-    output_path = save_summary(summary, title)
-    console.print(f"\n[bold green]💾 Summary saved to:[/bold green] {output_path}")
+    output_path = save_full_report(summary, extraction, title)
+    console.print(f"\n[bold green]💾 Full report saved to:[/bold green] {output_path}")
 
 
 def run_search_mode(query: str):
     """
-    Phase 2 mode: Search ArXiv, pick a paper, download and summarize it.
+    Phase 2+3 mode: Search ArXiv, pick a paper, download, summarize and extract.
 
     Args:
         query: Search keyword or topic.
     """
     # Step 1: Search ArXiv
-    console.print("\n[bold]Step 1/4 → Searching ArXiv...[/bold]")
+    console.print("\n[bold]Step 1/5 → Searching ArXiv...[/bold]")
     papers = search_papers(query, max_results=5)
 
     if not papers:
         sys.exit(1)
 
     # Step 2: Display results and let user pick
-    console.print("\n[bold]Step 2/4 → Select a paper...[/bold]")
+    console.print("\n[bold]Step 2/5 → Select a paper...[/bold]")
     display_papers(papers)
     selected_paper = pick_paper(papers)
 
     # Step 3: Download the PDF
-    console.print("\n[bold]Step 3/4 → Downloading PDF...[/bold]")
+    console.print("\n[bold]Step 3/5 → Downloading PDF...[/bold]")
     pdf_path = download_pdf(selected_paper)
 
     # Step 4: Summarize
-    console.print("\n[bold]Step 4/4 → Summarizing paper...[/bold]")
+    console.print("\n[bold]Step 4/5 → Summarizing paper...[/bold]")
     text = extract_text_from_pdf(pdf_path)
     chunks = chunk_text(text, max_chars=12000)
     summary = summarize_long_paper(chunks)
-
     console.print("\n")
     console.print(Panel(Markdown(summary), title="📄 Paper Summary", border_style="green"))
 
-    output_path = save_summary(summary, selected_paper["title"])
-    console.print(f"\n[bold green]💾 Summary saved to:[/bold green] {output_path}")
+    # Step 5: Extract methodology
+    console.print("\n[bold]Step 5/5 → Extracting methodology details...[/bold]")
+    extraction = extract_from_chunks(chunks)
+    display_extraction(extraction)
+
+    output_path = save_full_report(summary, extraction, selected_paper["title"])
+    console.print(f"\n[bold green]💾 Full report saved to:[/bold green] {output_path}")
 
 
 def main():
