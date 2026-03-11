@@ -49,6 +49,70 @@ Paper Text:
 {paper_text}
 """
 
+COMPARISON_PROMPT = """
+You are an expert AI research analyst. You are given structured extraction reports from two research papers.
+
+Your job is to compare both papers across all key dimensions and produce a detailed side-by-side comparison.
+
+Use the following format exactly:
+
+---
+
+## 📊 Side-by-Side Comparison
+
+| Aspect | {title1} | {title2} |
+|--------|----------|----------|
+| **Methodology** | (summarize in 1-2 sentences) | (summarize in 1-2 sentences) |
+| **Dataset** | (name + size if known) | (name + size if known) |
+| **Model Architecture** | (model type + key details) | (model type + key details) |
+| **Evaluation Metrics** | (metrics used) | (metrics used) |
+| **Results & Performance** | (key scores/outcomes) | (key scores/outcomes) |
+| **Limitations** | (main weaknesses) | (main weaknesses) |
+
+---
+
+## 🔍 Detailed Analysis
+
+### Methodology Comparison
+How do the research approaches differ? Which is more rigorous or novel?
+
+### Dataset Comparison
+How do the datasets differ in size, diversity, or suitability?
+
+### Architecture Comparison
+How do the model designs differ? What are the trade-offs?
+
+### Performance Comparison
+Which paper achieves better results, and on what benchmarks?
+
+### Limitations Comparison
+Which paper has more significant limitations?
+
+---
+
+## 🏆 Overall Verdict
+
+| Category | Winner | Reason |
+|----------|--------|--------|
+| Methodology | Paper 1 / Paper 2 / Tie | (one line reason) |
+| Dataset | Paper 1 / Paper 2 / Tie | (one line reason) |
+| Architecture | Paper 1 / Paper 2 / Tie | (one line reason) |
+| Performance | Paper 1 / Paper 2 / Tie | (one line reason) |
+| Overall | Paper 1 / Paper 2 / Tie | (one line reason) |
+
+---
+
+Be factual and precise. Base your comparison only on the provided extractions. Do not hallucinate.
+
+Paper 1 Title: {title1}
+Paper 1 Extraction:
+{extraction1}
+
+Paper 2 Title: {title2}
+Paper 2 Extraction:
+{extraction2}
+"""
+
 SUMMARY_PROMPT = """
 You are an expert research assistant. You are given the text of a research paper.
 
